@@ -65,16 +65,21 @@ jobs:
 
     # 在发送通知的步骤中替换为：
     - name: Send Gotify Notification
+      if: steps.scan.outputs.changed == 'true'
+      env:
+        GOTIFY_URL: ${{ secrets.GOTIFY_URL }}
+        GOTIFY_TOKEN: ${{ secrets.GOTIFY_TOKEN }}
       run: |
         MESSAGE=$(cat notice.txt)
-        curl -X POST "${{ secrets.GOTIFY_URL }}/message?token=${{ secrets.GOTIFY_TOKEN }}" \
-          -H "Content-Type: application/json" \
-          -d '{
-            "message": "$MESSAGE",
-            "priority": 8,
-            "title": "🎯 Release Update"
-          }'
-
+        if [ ! -z "$GOTIFY_URL" ] && [ ! -z "$GOTIFY_TOKEN" ]; then
+          curl "$GOTIFY_URL/message?token=$GOTIFY_TOKEN" \
+            -F "title=🎯 Release Update"  \
+            -F "message=$MESSAGE"  \
+            -F "priority=5" \
+           || echo "❌ Failed to send Telegram notification."
+        else
+          echo "⚠️ No configuration Telegram parameters, skip notifications."
+        fi
     - name: Commit new state
       if: steps.scan.outputs.changed == 'true'
       run: |
