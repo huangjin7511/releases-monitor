@@ -63,22 +63,16 @@ jobs:
         echo -e "$notice" > notice.txt
         echo "changed=$changed" >> $GITHUB_OUTPUT
 
-    - name: Send message to Telegram
-      if: steps.scan.outputs.changed == 'true'
-      env:
-        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+    # 在发送通知的步骤中替换为：
+    - name: Send Gotify Notification
       run: |
-        MESSAGE=$(cat notice.txt)
-        
-        if [ ! -z "$TELEGRAM_BOT_TOKEN" ] && [ ! -z "$TELEGRAM_CHAT_ID" ]; then
-          curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
-            -d chat_id="$TELEGRAM_CHAT_ID" \
-            -d text="$MESSAGE" \
-            -d parse_mode="Markdown" || echo "❌ Failed to send Telegram notification."
-        else
-          echo "⚠️ No configuration Telegram parameters, skip notifications."
-        fi
+        curl -X POST "${{ secrets.GOTIFY_URL }}/message?token=${{ secrets.GOTIFY_TOKEN }}" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "message": "📦 New Release: $REPO_NAME\n🔖 Version: $RELEASE_TAG\n📅 Published: $RELEASE_DATE\n🔗 Download: $RELEASE_URL",
+            "priority": 8,
+            "title": "🎯 Release Update"
+          }'
 
     - name: Commit new state
       if: steps.scan.outputs.changed == 'true'
