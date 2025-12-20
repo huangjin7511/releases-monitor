@@ -123,7 +123,7 @@ jobs:
       run: |
           # 企业微信机器人推送
           MESSAGE=$(cat notice.txt | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
-          if [ ! -z "$GOTIFY_URL" ] && [ ! -z "$GOTIFY_TOKEN" ]; then
+          if [ ! -z "$WECOM_WEBHOOK_URL" ]; then
             # 构建JSON数据
             JSON_DATA="{
               \"msgtype\": \"markdown\",
