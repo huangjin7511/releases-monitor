@@ -126,8 +126,8 @@ jobs:
           if [ ! -z "$WECOM_WEBHOOK_URL" ]; then
             # 构建JSON数据
             JSON_DATA="{
-              \"msgtype\": \"markdown\",
-              \"markdown\": {
+              \"msgtype\": \"text\",
+              \"text\": {
                 \"content\": \"$MESSAGE\"
               }
             }"
