@@ -11,20 +11,30 @@ permissions:
 jobs:
   notify:
     runs-on: ubuntu-latest
-    # 上海时间 23:00-6:30 不执行（对应UTC时间 15:00-22:30）
-    if: |
-      (!contains(fromJSON('["15", "16", "17", "18", "19", "20", "21", "22"]'), format(utcNow(), 'HH'))) ||
-      (github.event_name == 'workflow_dispatch')
-      
+
     steps:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Display current time
+    - name: Check time and set flag
+      id: time_check
       run: |
-        echo "当前上海时间: $(TZ='Asia/Shanghai' date) $(TZ='Asia/Shanghai' date +%H)"
-
+        # 获取当前UTC时间的小时
+        CURRENT_HOUR=$(date -u +%H)
+        echo "当前UTC小时: $CURRENT_HOUR"
+        
+        # 定义屏蔽时间段（UTC时间）：15:00-22:30 对应上海时间 23:00-06:30
+        if [[ "$CURRENT_HOUR" -ge 15 && "$CURRENT_HOUR" -le 22 ]]; then
+          echo "当前处于屏蔽时间段，跳过检查"
+          echo "should_skip=true" >> $GITHUB_OUTPUT
+        else
+          echo "当前不在屏蔽时间段，继续检查"
+          echo "should_skip=false" >> $GITHUB_OUTPUT
+        fi
+          
     - name: Ensure repos.json
+      if: steps.time_check.outputs.should_skip == 'false' || github.event_name == 'workflow_dispatch'
+      id: check
       run: |
         [[ -f repos.json ]] || echo '{}' > repos.json
 
@@ -32,6 +42,7 @@ jobs:
       run: sudo apt-get -qq update && sudo apt-get -qq install -y jq
 
     - name: Scan repositories
+      if: steps.check.outputs.has_new_release == 'true'
       id: scan
       run: |
         changed=false
@@ -73,7 +84,7 @@ jobs:
         echo "changed=$changed" >> $GITHUB_OUTPUT
         
     - name: Send WeCom Notification
-      if: steps.check.outputs.has_new_release == 'true'
+      if: steps.scan.outputs.changed == 'true'
       env:
         WECOM_WEBHOOK_URL: ${{ secrets.WECOM_WEBHOOK_URL }}    
       run: |
