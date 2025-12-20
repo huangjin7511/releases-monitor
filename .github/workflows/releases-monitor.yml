@@ -123,31 +123,40 @@ jobs:
       run: |
           # 企业微信机器人推送
           MESSAGE=$(cat notice.txt | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
-          curl -X POST "$WECOM_WEBHOOK_UR" \
-            -H "Content-Type: application/json" \
-            -d '{
-              "msgtype": "text",
-              "text": {
-                "content": "$MESSAGE"
+          if [ ! -z "$GOTIFY_URL" ] && [ ! -z "$GOTIFY_TOKEN" ]; then
+            # 构建JSON数据
+            JSON_DATA="{
+              \"msgtype\": \"markdown\",
+              \"markdown\": {
+                \"content\": \"$MESSAGE\"
               }
-            }'
-            
+            }"
+            # 发送请求
+            curl -X POST "$WECOM_WEBHOOK_URL" \
+              -H "Content-Type: application/json" \
+              -d "$JSON_DATA" \
+              -w "\nHTTP状态码: %{http_code}\n" \
+            || echo "❌ 企业微信发送失败."
+          else
+            echo "⚠️ 没有企业微信配置."
+          fi
+  
     - name: Send Gotify Notification
       if: steps.scan.outputs.changed == 'true'
       env:
         GOTIFY_URL: ${{ secrets.GOTIFY_URL }}
         GOTIFY_TOKEN: ${{ secrets.GOTIFY_TOKEN }}
       run: |
-        # Gotify 推送
+        # Gotify推送
         MESSAGE=$(cat notice.txt | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
         if [ ! -z "$GOTIFY_URL" ] && [ ! -z "$GOTIFY_TOKEN" ]; then
           curl "$GOTIFY_URL/message?token=$GOTIFY_TOKEN" \
             -F "title=🎯 Release Update"  \
             -F "message=$MESSAGE"  \
             -F "priority=5" \
-           || echo "❌ Failed to send Telegram notification."
+           || echo "❌ GOTIFY发送失败."
         else
-          echo "⚠️ No configuration Telegram parameters, skip notifications."
+          echo "⚠️ 没有GOTIFY配置."
         fi
     - name: Commit new state
       if: steps.scan.outputs.changed == 'true'
