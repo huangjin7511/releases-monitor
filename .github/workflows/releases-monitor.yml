@@ -2,7 +2,7 @@ name: 🤖 Releases Monitor
 
 on:
   schedule:
-    - cron: '0 */1 * * *'    # 每 6 小时检查一次
+    - cron: '0 */1 * * *'    # 每 1 小时检查一次
   workflow_dispatch:         # 允许手动触发
 
 permissions:
@@ -11,6 +11,11 @@ permissions:
 jobs:
   notify:
     runs-on: ubuntu-latest
+    # 屏蔽时间段：23:00-6:30（UTC时间）
+    if: |
+      !contains('23,0,1,2,3,4,5,6', format(date(utcNow()), 'HH')) ||
+      (github.event_name == 'workload_dispatch')
+      
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -62,14 +67,30 @@ jobs:
         done
         echo -e "$notice" > notice.txt
         echo "changed=$changed" >> $GITHUB_OUTPUT
-
-    # 在发送通知的步骤中替换为：
+        
+    - name: Send WeCom Notification
+      if: steps.check.outputs.has_new_release == 'true'
+      env:
+        WECOM_WEBHOOK_URL: ${{ secrets.WECOM_WEBHOOK_URL }}    
+      run: |
+          # 企业微信机器人推送
+          MESSAGE=$(cat notice.txt)
+          curl -X POST "$WECOM_WEBHOOK_UR" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "msgtype": "markdown",
+              "markdown": {
+                "content": "$MESSAGE"
+              }
+            }'
+            
     - name: Send Gotify Notification
       if: steps.scan.outputs.changed == 'true'
       env:
         GOTIFY_URL: ${{ secrets.GOTIFY_URL }}
         GOTIFY_TOKEN: ${{ secrets.GOTIFY_TOKEN }}
       run: |
+        # Gotify 推送
         MESSAGE=$(cat notice.txt)
         if [ ! -z "$GOTIFY_URL" ] && [ ! -z "$GOTIFY_TOKEN" ]; then
           curl "$GOTIFY_URL/message?token=$GOTIFY_TOKEN" \
