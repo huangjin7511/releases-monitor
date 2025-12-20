@@ -126,8 +126,8 @@ jobs:
           curl -X POST "$WECOM_WEBHOOK_UR" \
             -H "Content-Type: application/json" \
             -d '{
-              "msgtype": "markdown",
-              "markdown": {
+              "msgtype": "text",
+              "text": {
                 "content": "$MESSAGE"
               }
             }'
