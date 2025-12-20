@@ -36,13 +36,45 @@ jobs:
       if: steps.time_check.outputs.should_skip == 'false' || github.event_name == 'workflow_dispatch'
       id: check
       run: |
-        [[ -f repos.json ]] || echo '{}' > repos.json
+        if [[ ! -f repos.json ]]; then
+          echo '{}' > repos.json
+          echo "创建空的 repos.json 文件"
+        else
+          echo "repos.json 已存在"
+        fi
 
     - name: Install jq
-      run: sudo apt-get -qq update && sudo apt-get -qq install -y jq
+      if: steps.time_check.outputs.should_skip == 'false' || github.event_name == 'workflow_dispatch'
+      # 同时安装 curl 和 jq
+      run: sudo apt-get -qq update && sudo apt-get -qq install -y jq curl
 
+    - name: Initialize repository list
+      if: steps.time_check.outputs.should_skip == 'false' || github.event_name == 'workflow_dispatch'
+      id: init_repos
+      # [修改点3] 新增步骤：初始化仓库列表
+      run: |
+        # 定义要监控的仓库列表
+        repos=(
+          "cloudreve/Cloudreve"
+        )
+        
+        # 读取现有的 repos.json
+        current_json=$(cat repos.json)
+        
+        # 添加缺失的仓库
+        for repo in "${repos[@]}"; do
+          if ! jq -e "has(\"$repo\")" <<< "$current_json" > /dev/null; then
+            echo "添加新仓库: $repo"
+            current_json=$(jq --arg repo "$repo" '.[$repo]=""' <<< "$current_json")
+          fi
+        done
+        
+        # 保存更新后的 repos.json
+        echo "$current_json" > repos.json
+        echo "已初始化仓库列表"
+        
     - name: Scan repositories
-      if: steps.check.outputs.has_new_release == 'true'
+      if: steps.time_check.outputs.should_skip == 'false' || github.event_name == 'workflow_dispatch'
       id: scan
       run: |
         changed=false
@@ -51,7 +83,11 @@ jobs:
         for repo in $repos; do
           echo "==> $repo"
           api="https://api.github.com/repos/${repo}/releases/latest"
-          json=$(curl -sL "$api" -H "Authorization: Bearer ${{ github.token }}")
+          headers=()
+          if [[ -n "${{ github.token }}" ]]; then
+            headers=(-H "Authorization: Bearer ${{ github.token }}")
+          fi
+          json=$(curl -sL "${headers[@]}" "$api")
           tag=$(jq -r '.tag_name // empty' <<< "$json")
           url=$(jq -r '.html_url // empty' <<< "$json")
           if [[ -z "$tag" ]]; then
@@ -63,12 +99,9 @@ jobs:
             echo "   ↳ NEW $tag"
             changed=true
             
-            # 获取 release notes
             release_notes=$(jq -r '.body // "暂无更新说明"' <<< "$json")
-            # 限制 release notes 长度，避免消息过长
-            if [[ ${#release_notes} -gt 500 ]]; then
-              release_notes="${release_notes:0:500}..."
-            fi
+            # 清理 release notes 中的特殊字符
+            release_notes=$(echo "$release_notes" | tr -d '\000-\031' | head -c 1000)
             
             notice+="📢 ${repo} 发布新版本：${tag}\n\n"
             notice+="👉 ${url}\n\n"
@@ -89,7 +122,7 @@ jobs:
         WECOM_WEBHOOK_URL: ${{ secrets.WECOM_WEBHOOK_URL }}    
       run: |
           # 企业微信机器人推送
-          MESSAGE=$(cat notice.txt)
+          MESSAGE=$(cat notice.txt | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
           curl -X POST "$WECOM_WEBHOOK_UR" \
             -H "Content-Type: application/json" \
             -d '{
@@ -106,7 +139,7 @@ jobs:
         GOTIFY_TOKEN: ${{ secrets.GOTIFY_TOKEN }}
       run: |
         # Gotify 推送
-        MESSAGE=$(cat notice.txt)
+        MESSAGE=$(cat notice.txt | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
         if [ ! -z "$GOTIFY_URL" ] && [ ! -z "$GOTIFY_TOKEN" ]; then
           curl "$GOTIFY_URL/message?token=$GOTIFY_TOKEN" \
             -F "title=🎯 Release Update"  \
@@ -122,5 +155,5 @@ jobs:
         git config user.name "github-actions[bot]"
         git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
         git add repos.json
-        git commit -m "bot: update release state"
+        git diff --staged --quiet || git commit -m "bot: update release state"
         git push
