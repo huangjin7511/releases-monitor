@@ -1,7 +1,7 @@
 {
   "cloudreve/Cloudreve": "4.12.1",
   "filebrowser/filebrowser": "v2.57.0",
-  "home-assistant/docker": "2026.01.0",
+  "home-assistant/docker": "2026.02.0",
   "home-assistant/android": "2026.2.1",
   "adizanni/floor3d-card": "v.1.5.3",
   "AlexxIT/SonoffLAN": "v3.9.3",
