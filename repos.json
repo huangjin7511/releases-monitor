@@ -4,7 +4,7 @@
   "home-assistant/docker": "2026.02.0",
   "home-assistant/android": "2026.3.2",
   "adizanni/floor3d-card": "v.1.5.3",
-  "AlexxIT/SonoffLAN": "v3.11.0",
+  "AlexxIT/SonoffLAN": "v3.11.1",
   "ESPresense/ESPresense": "v4.0.6",
   "ESPresense/ad-espresense-ips": "v1.0.1",
   "MoonModules/WLED": "v14.7.1",
