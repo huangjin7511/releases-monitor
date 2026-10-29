@@ -1,7 +1,7 @@
 {
   "cloudreve/Cloudreve": "4.19.1",
   "filebrowser/filebrowser": "v2.63.23",
-  "home-assistant/docker": "2026.10.2",
+  "home-assistant/docker": "2026.10.3",
   "home-assistant/android": "2026.10.1",
   "adizanni/floor3d-card": "v.1.5.3",
   "AlexxIT/SonoffLAN": "v3.13.2",
@@ -12,7 +12,7 @@
   "jeelabs/esp-link": "V3.0.14",
   "Caffreyfans/IRbaby-firmware": "1.1",
   "Caffreyfans/IRbaby-android": "v1.2.2",
-  "laurent22/joplin": "v3.7.21",
+  "laurent22/joplin": "v3.7.22",
   "djylb/nps": "v0.34.10",
   "djylb/npsclient": "v1.3.26",
   "rustdesk/rustdesk-server": "1.1.16",
