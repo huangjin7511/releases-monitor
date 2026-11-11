@@ -16,7 +16,7 @@
   "djylb/nps": "v0.35.1",
   "djylb/npsclient": "v1.4.1",
   "rustdesk/rustdesk-server": "1.1.16",
-  "rustdesk/rustdesk": "1.5.1",
+  "rustdesk/rustdesk": "1.5.3",
   "pvqogw/TVBoxOSC": "20260914-1520",
   "micahmo/WgServerforWindows": "v2.1.5",
   "gotify/server": "v3.1.1",
